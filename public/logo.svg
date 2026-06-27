@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" fill="none">
+  <!-- Icon mark -->
+  <rect width="60" height="60" rx="10" fill="#18181B"/>
+  <path d="M11 14 L30 46 L49 14" stroke="#F59E0B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="30" cy="51" r="2.5" fill="#F59E0B"/>
+
+  <!-- Wordmark: "Velo" in near-black -->
+  <text x="74" y="42" font-family="'Inter', 'Outfit', system-ui, sans-serif" font-weight="800" font-size="30" fill="#18181B" letter-spacing="-0.5">Velo</text>
+  <!-- Wordmark: "Market" in amber -->
+  <text x="144" y="42" font-family="'Inter', 'Outfit', system-ui, sans-serif" font-weight="800" font-size="30" fill="#F59E0B" letter-spacing="-0.5">Market</text>
+</svg>

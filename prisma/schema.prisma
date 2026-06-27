@@ -1,0 +1,239 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  password     String
+  avatar       String?
+  role         String     @default("customer") // customer | admin
+  loyaltyPoints Int      @default(0)
+  banned       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  reviews      Review[]
+  orders       Order[]
+  addresses    Address[]
+  wishlist     Wishlist[]
+  questions    Question[]
+  cartItems    CartItem[]
+  giftCards    GiftCard[] @relation("GiftCardPurchaser")
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  slug        String     @unique
+  icon        String?
+  image       String?
+  description String?
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  products    Product[]
+  createdAt   DateTime   @default(now())
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String
+  brand       String
+  price       Float
+  compareAt   Float?    // original price for showing discount
+  currency    String    @default("USD")
+  images      String    // JSON-encoded array of image URLs
+  rating      Float     @default(0)
+  ratingCount Int       @default(0)
+  stock       Int       @default(0)
+  isFeatured  Boolean   @default(false)
+  isActive    Boolean   @default(true)
+  tags        String?   // JSON-encoded array of tags
+  specs       String?   // JSON-encoded object of spec key/values
+  variants    String?   // JSON-encoded: { colors: [{name,hex,stock,priceDelta}], sizes: [{name,stock,priceDelta}] }
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  reviews     Review[]
+  wishlist    Wishlist[]
+  orderItems  OrderItem[]
+  questions   Question[]
+  cartItems   CartItem[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([categoryId])
+  @@index([isFeatured])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  author    String
+  rating    Int
+  title     String
+  comment   String
+  images    String?  // JSON-encoded array of image URLs
+  verified  Boolean  @default(false)
+  helpful   Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName  String
+  phone     String
+  line1     String
+  line2     String?
+  city      String
+  state     String
+  zip       String
+  country   String    @default("United States")
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  status          String      @default("pending") // pending | paid | shipped | delivered | cancelled
+  itemsTotal      Float
+  shippingTotal   Float       @default(0)
+  taxTotal        Float       @default(0)
+  discountTotal   Float       @default(0)
+  grandTotal      Float
+  currency        String      @default("USD")
+  shippingAddress String      // JSON snapshot
+  paymentMethod   String      @default("card")
+  paymentStatus   String      @default("pending") // pending | paid | failed | refunded
+  paymentTxnId    String?
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product @relation(fields: [productId], references: [id])
+  name        String
+  image       String
+  brand       String
+  unitPrice   Float
+  quantity    Int
+  lineTotal   Float
+
+  @@index([orderId])
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+model CartItem {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity       Int      @default(1)
+  variantKey     String?  // unique per color/size combo
+  variantData    String?  // JSON-encoded { color: {name, hex}, size: {name} }
+  unitPrice      Float    // snapshot of price at time of add (incl. variant deltas)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, productId, variantKey])
+  @@index([userId])
+}
+
+model Newsletter {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  source    String   @default("footer") // footer | checkout | popup
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  author      String
+  question    String
+  answer      String?
+  answerAuthor String?
+  answeredAt  DateTime?
+  helpfulQ    Int      @default(0)
+  helpfulA    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([productId])
+}
+
+model GiftCard {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  amount      Float     // original value in USD
+  balance     Float     // remaining balance
+  currency    String    @default("USD")
+  purchaserId String?
+  purchaser   User?     @relation("GiftCardPurchaser", fields: [purchaserId], references: [id])
+  recipientEmail String?
+  message     String?
+  status      String    @default("active") // active | redeemed | expired | cancelled
+  orderId     String?   // order that purchased this card
+  redeemedBy  String?   // user id who last redeemed
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  transactions GiftCardTransaction[]
+
+  @@index([purchaserId])
+  @@index([status])
+}
+
+model GiftCardTransaction {
+  id          String    @id @default(cuid())
+  giftCardId  String
+  giftCard    GiftCard  @relation(fields: [giftCardId], references: [id], onDelete: Cascade)
+  userId      String?
+  amount      Float     // negative = redeemed, positive = funded
+  orderId     String?   // order where it was used
+  createdAt   DateTime  @default(now())
+
+  @@index([giftCardId])
+}
